@@ -51,7 +51,7 @@ def delete_user():
     session.delete(user)
     session.commit()
 
-    return jsonify({"msg": f'User {user.name} has been deleted'}), HTTPStatus.OK
+    return jsonify({"msg": f'User {user.name} {user.last_name} has been deleted'}), HTTPStatus.OK
 
 
 def create_user():
