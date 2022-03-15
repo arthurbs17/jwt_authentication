@@ -1,4 +1,3 @@
-import email
 from http import HTTPStatus
 
 from flask import request, jsonify, current_app, session
@@ -17,6 +16,42 @@ def get_user():
     user = get_jwt_identity()
 
     return jsonify(user), HTTPStatus.OK
+
+
+@jwt_required()
+def update_user():
+    session: Session = current_app.db.session
+
+    try:
+        data = request.get_json()
+        check_values_types(data)
+
+        decoded_user = get_jwt_identity()
+        user: UserModel = UserModel.query.filter_by(email=decoded_user["email"]).first()
+
+        for key, value in data.items():
+            setattr(user, key, value)
+
+        session.add(user)
+        session.commit()
+
+        return jsonify(user), HTTPStatus.OK
+    
+    except InvalidValues as error:
+        return jsonify(error.message), HTTPStatus.BAD_REQUEST
+
+
+@jwt_required()
+def delete_user():
+    session: Session = current_app.db.session
+   
+    decoded_user = get_jwt_identity()
+    user: UserModel = UserModel.query.filter_by(email=decoded_user["email"]).first()
+
+    session.delete(user)
+    session.commit()
+
+    return jsonify({"msg": f'User {user.name} has been deleted'}), HTTPStatus.OK
 
 
 def create_user():
