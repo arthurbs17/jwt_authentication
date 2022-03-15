@@ -1,11 +1,12 @@
 from http import HTTPStatus
 
-from flask import request, jsonify, current_app, session
+from flask import g, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.configs.database import db 
 from app.models.user_model import UserModel
 from app.services.user_services import check_keys, check_values_types
 from app.exc.invalids_requests import InvalidKeys, InvalidValues
@@ -23,7 +24,7 @@ def update_user():
     session: Session = current_app.db.session
 
     try:
-        data = request.get_json()
+        data: dict = request.get_json()
         check_values_types(data)
 
         decoded_user = get_jwt_identity()
@@ -32,8 +33,7 @@ def update_user():
         for key, value in data.items():
             setattr(user, key, value)
 
-        session.add(user)
-        session.commit()
+        db.session.commit()
 
         return jsonify(user), HTTPStatus.OK
     
@@ -76,7 +76,7 @@ def create_user():
         return jsonify(error.message), HTTPStatus.BAD_REQUEST
     
     except IntegrityError:
-        return {"error": "email already exists"}
+        return {"error": "email already exists"}, HTTPStatus.CONFLICT
 
 
 def login_user():
@@ -93,3 +93,32 @@ def login_user():
     token = create_access_token(user)
 
     return jsonify({"acess_token": token}), HTTPStatus.OK
+
+
+def get_all_users():
+    session: Session = current_app.db.session
+
+    get_args = request.args
+    page = get_args.get('page', 1, type=int)
+    per_page = 10
+    
+    args_model = {
+        "name": get_args.get('name'),
+        "last_name": get_args.get('last_name'),
+        "email": get_args.get('email')
+    }
+
+    args = {}
+
+    for key, value in args_model.items():
+        if value != None:
+            args[key] = value
+    
+    users = session.query(UserModel).filter_by(**args
+    ).paginate(page, per_page,error_out=False)
+
+    response = {"users": users.items}
+    response["page"] = users.page
+    response["total_pages"] = users.pages
+
+    return jsonify(response), HTTPStatus.OK

@@ -11,6 +11,7 @@ def check_keys(data: dict):
         raise InvalidKeys(missing_keys, key_names)
 
 def check_values_types(data: dict):
-    for key in key_names:
+    data_keys = data.keys()
+    for key in data_keys:
         if type(data[key]) != str:
             raise InvalidValues(data={f'{key}: {data[key]}'}, type=type(data[key]))
