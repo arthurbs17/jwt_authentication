@@ -1,3 +1,4 @@
+import email
 from http import HTTPStatus
 
 from flask import request, jsonify, current_app, session
@@ -41,3 +42,19 @@ def create_user():
     
     except IntegrityError:
         return {"error": "email already exists"}
+
+
+def login_user():
+    data = request.get_json()
+
+    user: UserModel = UserModel.query.filter_by(email=data["email"]).first()
+
+    if not user:
+        return {"error": "user not found"}, HTTPStatus.NOT_FOUND
+    
+    if not user.check_password(data["password"]):
+        return {"error": "email and password missmatch"}, HTTPStatus.UNAUTHORIZED
+    
+    token = create_access_token(user)
+
+    return jsonify({"acess_token": token}), HTTPStatus.OK
